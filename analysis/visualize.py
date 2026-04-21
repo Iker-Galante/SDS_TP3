@@ -7,7 +7,6 @@ Creates animations showing particles with color-coded states:
   - Gray: Boundary particles (enclosure wall)
 """
 
-import ovito
 from ovito.io import import_file
 from ovito.vis import *
 from ovito.modifiers import *
