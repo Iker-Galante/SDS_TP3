@@ -106,7 +106,7 @@ def main():
         ax.tick_params(labelsize=12)
         plt.tight_layout()
         plt.savefig(os.path.join(OUTPUT_BASE, f'Cfc_vs_t_N{example_n}.png'), dpi=150, bbox_inches='tight')
-        plt.show()
+        plt.close()
     
     # --- Plot 2: <J>(N) with error bars ---
     fig, ax = plt.subplots(figsize=(10, 7))
@@ -126,7 +126,7 @@ def main():
     
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_BASE, 'scanning_rate_vs_N.png'), dpi=150, bbox_inches='tight')
-    plt.show()
+    plt.close()
     
     # Print table
     print(f"\n{'N':>6} | {'<J>':>10} | {'σ_J':>10}")

@@ -85,7 +85,6 @@ def main():
     
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_BASE, 'execution_time_vs_N.png'), dpi=150, bbox_inches='tight')
-    plt.show()
     print(f"Plot saved to {OUTPUT_BASE}/execution_time_vs_N.png")
     
     # Print table

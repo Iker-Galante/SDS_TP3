@@ -169,7 +169,7 @@ def main():
     
     plt.tight_layout()
     plt.savefig(os.path.join(PLOT_DIR, 'Fest_and_tsteady_vs_N.png'), dpi=150, bbox_inches='tight')
-    plt.show()
+    plt.close(fig)
     
     # Print table
     print(f"\n{'N':>6} | {'Fest':>8} | {'σ_Fest':>8} | {'t_steady':>10} | {'σ_t':>10}")

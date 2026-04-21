@@ -251,7 +251,7 @@ def main():
         
         plt.tight_layout()
         plt.savefig(os.path.join(PLOT_DIR, f'radial_profiles_N{example_n}.png'), dpi=150, bbox_inches='tight')
-        plt.show()
+        plt.close()
     
     # --- Plot 2: All three quantities in one figure for comparison ---
     example_n = max(n for n in profiles.keys())
@@ -277,7 +277,7 @@ def main():
     
     plt.tight_layout()
     plt.savefig(os.path.join(PLOT_DIR, f'radial_profiles_combined_N{example_n}.png'), dpi=150, bbox_inches='tight')
-    plt.show()
+    plt.close()
     
     # --- Plot 3: Jin, ρ_fin, v_fin at S≈2 as function of N ---
     target_s = 2.0  # S ≈ 2m (near the obstacle contact distance)
@@ -326,7 +326,7 @@ def main():
         fig.suptitle('Cantidades en S≈2m en función de N', fontsize=16, y=1.02)
         plt.tight_layout()
         plt.savefig(os.path.join(PLOT_DIR, 'radial_at_S2_vs_N.png'), dpi=150, bbox_inches='tight')
-        plt.show()
+        plt.close()
     
     print(f"Plots saved to {PLOT_DIR}/")
 
