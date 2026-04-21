@@ -132,6 +132,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
     resolution = (args.width, args.height)
     
+    # Ensure the output has an extension so OVITO knows how to render it
+    _, ext = os.path.splitext(args.output)
+    if not ext:
+        if args.mode == "animation":
+            args.output += ".mp4"
+            print(f"No extension provided for output. Defaulting to {args.output}")
+        else:
+            args.output += ".png"
+            print(f"No extension provided for output. Defaulting to {args.output}")
+    
     if args.mode == "animation":
         render_animation(args.input, args.output, args.L, args.fps, resolution)
     else:

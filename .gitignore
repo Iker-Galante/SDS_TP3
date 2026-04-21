@@ -37,3 +37,7 @@ dependency-reduced-pom.xml
 # Python
 __pycache__/
 *.pyc
+
+# Videos or Snapshots
+*.mp4
+*.png
