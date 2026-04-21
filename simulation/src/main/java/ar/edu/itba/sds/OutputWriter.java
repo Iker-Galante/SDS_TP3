@@ -53,10 +53,9 @@ public class OutputWriter {
         xyzWriter.printf(Locale.US, "%d%n", totalParticles);
         // Properties line with Lattice for OVITO to recognize the box
         xyzWriter.printf(Locale.US,
-                "Lattice=\"%.1f 0.0 0.0 0.0 %.1f 0.0 0.0 0.0 1.0\" " +
                 "Properties=id:I:1:pos:R:3:velo:R:3:radius:R:1:state:I:1 " +
                 "Time=%.6f%n",
-                enclosureDiameter, enclosureDiameter, time);
+                time);
 
         // Write obstacle
         xyzWriter.printf(Locale.US, "%d %.6f %.6f 0.0 0.0 0.0 0.0 %.6f %d%n",

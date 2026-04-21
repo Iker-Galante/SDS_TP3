@@ -67,7 +67,9 @@ public class Particle {
             this.vx -= 2 * vn * nx;
             this.vy -= 2 * vn * ny;
             this.collisionCount++;
-            other.collisionCount++;
+            // We do NOT increment other.collisionCount because the fixed obstacle
+            // never changes its motion state. This prevents invalidating other
+            // pending valid collisions with the obstacle!
         } else {
             // Elastic collision between two movable particles
             double totalMass = this.mass + other.mass;
