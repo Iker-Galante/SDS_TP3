@@ -15,7 +15,7 @@ import sys
 # Configuration
 JAR_PATH = os.path.join(os.path.dirname(__file__), "..", "simulation", "target", "tp3-scanning-rate-1.0-SNAPSHOT.jar")
 OUTPUT_BASE = os.path.join(os.path.dirname(__file__), "..", "output", "ex1")
-TF = 5.0  # Fixed final simulation time
+TF = 500.0  # Fixed final simulation time (extended to 500s para mayor estadística)
 DT = 0.1  # Output interval
 N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300]
 SEEDS = [42, 123, 456, 789, 1024]  # Multiple seeds for averaging
@@ -29,7 +29,8 @@ def run_simulation(n, tf, seed, output_dir):
         "-tf", str(tf),
         "-dt", str(DT),
         "-o", output_dir,
-        "-seed", str(seed)
+        "-seed", str(seed),
+        "-no-save"
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -51,6 +52,9 @@ def run_simulation(n, tf, seed, output_dir):
 def main():
     os.makedirs(OUTPUT_BASE, exist_ok=True)
     
+    print("Nota: NO se están guardando los estados del sistema durante esta simulación.")
+    print("Esto se debe a que para TF grande y valores de N altos, puede volverse muy costoso el uso de I/O y espacio en disco.\n")
+
     results = {}  # N -> list of elapsed_ms
     
     for n in N_VALUES:

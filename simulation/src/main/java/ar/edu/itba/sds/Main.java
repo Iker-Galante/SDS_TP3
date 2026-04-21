@@ -26,6 +26,7 @@ public class Main {
     private static double dt = 0.05;       // output interval [s]
     private static long seed = 42;         // random seed
     private static String outputDir = "output";
+    private static boolean saveState = true; // whether to save xyz and event states
 
     public static void main(String[] args) {
         parseArgs(args);
@@ -46,7 +47,7 @@ public class Main {
 
         // Setup output writer
         try {
-            OutputWriter writer = new OutputWriter(outputDir, N, (int) seed, obstacle, L);
+            OutputWriter writer = new OutputWriter(outputDir, N, (int) seed, obstacle, L, saveState);
 
             // Create and run simulation
             EventDrivenMD sim = new EventDrivenMD(particles, obstacle, L, tf, dt, writer);
@@ -158,6 +159,9 @@ public class Main {
                 case "-seed":
                     seed = Long.parseLong(args[++i]);
                     break;
+                case "-no-save":
+                    saveState = false;
+                    break;
                 case "-dt":
                     dt = Double.parseDouble(args[++i]);
                     break;
@@ -195,6 +199,7 @@ public class Main {
         System.out.println("  -N <int>        Number of particles (default: 100)");
         System.out.println("  -tf <double>    Final simulation time in seconds (default: 5.0)");
         System.out.println("  -o <dir>        Output directory (default: output)");
+        System.out.println("  -no-save        Disable saving xyz states and event logs");
         System.out.println("  -seed <long>    Random seed (default: 42)");
         System.out.println("  -dt <double>    Output time interval in seconds (default: 0.05)");
         System.out.println("  -L <double>     Enclosure diameter in meters (default: 80.0)");

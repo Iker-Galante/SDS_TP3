@@ -10,25 +10,33 @@ import java.util.Locale;
  */
 public class OutputWriter {
 
-    private final PrintWriter xyzWriter;
-    private final PrintWriter eventWriter;
+    private PrintWriter xyzWriter;
+    private PrintWriter eventWriter;
     private final Particle obstacle;
     private final double enclosureDiameter;
+    private final boolean saveState;
 
-    public OutputWriter(String outputDir, int n, int seed, Particle obstacle, double enclosureDiameter) throws IOException {
-        File dir = new File(outputDir);
-        if (!dir.exists()) dir.mkdirs();
-
-        String xyzFile = String.format("%s/simulation_N%d_seed%d.xyz", outputDir, n, seed);
-        String eventFile = String.format("%s/events_N%d_seed%d.csv", outputDir, n, seed);
-
-        this.xyzWriter = new PrintWriter(new BufferedWriter(new FileWriter(xyzFile)));
-        this.eventWriter = new PrintWriter(new BufferedWriter(new FileWriter(eventFile)));
+    public OutputWriter(String outputDir, int n, int seed, Particle obstacle, double enclosureDiameter, boolean saveState) throws IOException {
+        this.saveState = saveState;
         this.obstacle = obstacle;
         this.enclosureDiameter = enclosureDiameter;
 
-        // Write event log header
-        eventWriter.println("time,event_type,particle_id,particle_id2,state_change");
+        File dir = new File(outputDir);
+        if (!dir.exists()) dir.mkdirs();
+
+        if (saveState) {
+            String xyzFile = String.format("%s/simulation_N%d_seed%d.xyz", outputDir, n, seed);
+            String eventFile = String.format("%s/events_N%d_seed%d.csv", outputDir, n, seed);
+
+            this.xyzWriter = new PrintWriter(new BufferedWriter(new FileWriter(xyzFile)));
+            this.eventWriter = new PrintWriter(new BufferedWriter(new FileWriter(eventFile)));
+
+            // Write event log header
+            eventWriter.println("time,event_type,particle_id,particle_id2,state_change");
+        } else {
+            this.xyzWriter = null;
+            this.eventWriter = null;
+        }
     }
 
     /**
@@ -36,6 +44,8 @@ public class OutputWriter {
      * Includes the obstacle as first entry and boundary particles for the enclosure.
      */
     public void writeFrame(double time, List<Particle> particles) {
+        if (!saveState) return;
+
         // Number of boundary visualization particles
         int nBoundary = 360; // one per degree
         int totalParticles = 1 + particles.size() + nBoundary; // obstacle + particles + boundary
@@ -79,6 +89,7 @@ public class OutputWriter {
      * state_change: "FRESH_TO_USED", "USED_TO_FRESH", or "NONE"
      */
     public void writeEvent(double time, Event.Type type, int particleId, int particleId2, String stateChange) {
+        if (!saveState) return;
         eventWriter.printf(Locale.US, "%.10f,%s,%d,%d,%s%n",
                 time, type.name(), particleId, particleId2, stateChange);
     }
@@ -95,7 +106,7 @@ public class OutputWriter {
     }
 
     public void close() {
-        xyzWriter.close();
-        eventWriter.close();
+        if (xyzWriter != null) xyzWriter.close();
+        if (eventWriter != null) eventWriter.close();
     }
 }
