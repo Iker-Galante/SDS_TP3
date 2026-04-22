@@ -98,7 +98,7 @@ def compute_radial_profiles(frames, max_s=None):
         max_s = ENCLOSURE_DIAMETER / 2.0 - PARTICLE_RADIUS
     
     # Define layer edges
-    s_min = OBSTACLE_RADIUS + PARTICLE_RADIUS + DS  # Start outside contact distance
+    s_min = OBSTACLE_RADIUS + PARTICLE_RADIUS  # Start outside contact distance 2.0
     s_edges = np.arange(s_min, max_s, DS)
     s_centers = (s_edges[:-1] + s_edges[1:]) / 2.0
     n_layers = len(s_centers)
@@ -152,7 +152,7 @@ def compute_radial_profiles(frames, max_s=None):
         all_rho.append(rho)
         
         # Mean v_fin in each layer (handle empty layers)
-        vfin_mean = np.zeros(n_layers)
+        vfin_mean = np.full(n_layers, np.nan)
         for k in range(n_layers):
             if vfin_count[k] > 0:
                 vfin_mean[k] = vfin_sum[k] / vfin_count[k]
@@ -164,8 +164,11 @@ def compute_radial_profiles(frames, max_s=None):
     # Average over frames
     rho_mean = np.mean(all_rho, axis=0)
     rho_std = np.std(all_rho, axis=0)
-    vfin_mean = np.mean(all_vfin, axis=0)
-    vfin_std = np.std(all_vfin, axis=0)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        vfin_mean = np.nanmean(all_vfin, axis=0)
+        vfin_std = np.nanstd(all_vfin, axis=0)
     
     return s_centers, rho_mean, vfin_mean, rho_std, vfin_std
 
@@ -212,7 +215,11 @@ def main():
         if s_centers_ref is not None and all_rho_accum:
             # Average over realizations
             rho_final = np.mean(all_rho_accum, axis=0)
-            vfin_final = np.mean(all_vfin_accum, axis=0)
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                vfin_final = np.nanmean(all_vfin_accum, axis=0)
+                vfin_final = np.nan_to_num(vfin_final, nan=0.0)
             profiles[n] = (s_centers_ref, rho_final, vfin_final)
     
     if not profiles:
