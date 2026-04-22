@@ -125,7 +125,6 @@ def main():
     
     plt.tight_layout()
     plt.savefig(os.path.join(PLOT_DIR, 'Fu_vs_t.png'), dpi=150, bbox_inches='tight')
-    plt.show()
     
     # --- Compute steady state values ---
     fest_values = {}  # N -> (mean_fest, std_fest, mean_t_steady, std_t_steady)
