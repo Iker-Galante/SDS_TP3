@@ -120,7 +120,6 @@ def main():
     ax.set_title('Fracción de partículas usadas vs tiempo', fontsize=16)
     ax.legend(fontsize=11, loc='best')
     ax.grid(True, alpha=0.3)
-    ax.set_ylim(-0.05, 1.05)
     ax.tick_params(labelsize=12)
     
     plt.tight_layout()
@@ -155,7 +154,6 @@ def main():
     ax1.set_ylabel('$F_{est}$', fontsize=14)
     ax1.set_title('Valor estacionario $F_{est}$ vs N', fontsize=16)
     ax1.grid(True, alpha=0.3)
-    ax1.set_ylim(-0.05, 1.05)
     ax1.tick_params(labelsize=12)
     
     ax2.errorbar(ns, t_steady_means, yerr=t_steady_stds, fmt='s-', capsize=5, linewidth=2,
