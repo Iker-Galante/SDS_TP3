@@ -20,7 +20,7 @@ import glob
 # Configuration
 OUTPUT_BASE = os.path.join(os.path.dirname(__file__), "..", "output", "ex2")  # Reuse ex2 data
 PLOT_DIR = os.path.join(os.path.dirname(__file__), "..", "output", "ex3")
-N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300]
+N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300, 400]
 NUM_REALIZATIONS = 10
 BASE_SEED = 100
 
@@ -96,10 +96,11 @@ def main():
     # --- Plot 1: Fu(t) for different N values ---
     fig, ax = plt.subplots(figsize=(12, 8))
     
-    colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(N_VALUES)))
+    plot1_n_values = [100, 200, 300,400]
+    colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(plot1_n_values)))
     
-    for idx, n in enumerate(N_VALUES):
-        if not all_fu[n]:
+    for idx, n in enumerate(plot1_n_values):
+        if n not in all_fu or not all_fu[n]:
             continue
         
         # Find common time grid for averaging

@@ -19,8 +19,8 @@ import os
 # Configuration
 OUTPUT_BASE = os.path.join(os.path.dirname(__file__), "..", "output", "ex2")  # Reuse ex2 data
 PLOT_DIR = os.path.join(os.path.dirname(__file__), "..", "output", "ex4")
-N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300]
-NUM_REALIZATIONS = 10
+N_VALUES = [100,  200, 300, 400]
+NUM_REALIZATIONS = 5
 BASE_SEED = 100
 DS = 0.2  # Layer width
 ENCLOSURE_DIAMETER = 80.0
