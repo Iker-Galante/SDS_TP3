@@ -41,3 +41,5 @@ __pycache__/
 # Videos or Snapshots
 *.mp4
 *.png
+
+.vscode/

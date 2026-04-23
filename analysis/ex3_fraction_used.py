@@ -11,7 +11,7 @@ For each N:
 
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import csv
@@ -40,9 +40,8 @@ def load_fu_data(output_base, n, seed):
         for row in reader:
             t = float(row['time'])
             n_used = float(row['N_used'])
-            n_total = float(row['N_total'])
             times.append(t)
-            fu_values.append(n_used / n_total if n_total > 0 else 0)
+            fu_values.append(n_used / n if n > 0 else 0)
     
     return np.array(times), np.array(fu_values)
 
@@ -78,13 +77,27 @@ def find_steady_state(times, fu, window_fraction=0.1, threshold=0.01):
     
     return t_steady, fest
 
+def read_steady_states(csv_file):
+    if not os.path.exists(csv_file):
+        return None, None
+    steady_state = {}
+    with open(csv_file, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            n = float(row['n'])
+            t_stat = float(row['t_stat'])
+            steady_state[int(n)] = int(t_stat)
+    return steady_state
+
+def calculate_steady_value(fu, steady_state):
+    return np.mean(fu[steady_state:])
 
 def main():
     os.makedirs(PLOT_DIR, exist_ok=True)
     
     # Collect data
     all_fu = {}  # N -> list of (times, fu) tuples
-    
+    steady_states = read_steady_states(os.path.join(os.path.dirname(__file__), "stationary.csv"))
     for n in N_VALUES:
         all_fu[n] = []
         for real in range(NUM_REALIZATIONS):
@@ -96,8 +109,8 @@ def main():
     # --- Plot 1: Fu(t) for different N values ---
     fig, ax = plt.subplots(figsize=(12, 8))
     
-    plot1_n_values = [100, 200, 300,400]
-    colors = plt.cm.viridis(np.linspace(0.1, 0.9, len(plot1_n_values)))
+    plot1_n_values = [100, 200, 300, 400]
+    colors = plt.colormaps['viridis'](np.linspace(0.1, 0.9, len(plot1_n_values)))
     
     for idx, n in enumerate(plot1_n_values):
         if n not in all_fu or not all_fu[n]:
@@ -128,12 +141,14 @@ def main():
     
     # --- Compute steady state values ---
     fest_values = {}  # N -> (mean_fest, std_fest, mean_t_steady, std_t_steady)
-    
+    print(steady_states)
     for n in N_VALUES:
         fests = []
         t_steadys = []
         for times, fu in all_fu[n]:
-            t_s, f_s = find_steady_state(times, fu)
+            #t_s, f_s = find_steady_state(times, fu)
+            t_s = steady_states[n]
+            f_s = calculate_steady_value(fu, t_s)
             fests.append(f_s)
             t_steadys.append(t_s)
         

@@ -47,8 +47,9 @@ public class OutputWriter {
         if (!saveState) return;
 
         // Number of boundary visualization particles
-        int nBoundary = 360; // one per degree
-        int totalParticles = 1 + particles.size() + nBoundary; // obstacle + particles + boundary
+        // int nBoundary = 360; // one per degree
+        // int totalParticles = 1 + particles.size() + nBoundary; // obstacle + particles + boundary
+        int totalParticles = 1 + particles.size();
 
         xyzWriter.printf(Locale.US, "%d%n", totalParticles);
         // Properties line with Lattice for OVITO to recognize the box
@@ -70,15 +71,15 @@ public class OutputWriter {
                     p.getRadius(), p.getStateCode());
         }
 
-        // Write boundary particles (small, for visualization)
-        double R = enclosureDiameter / 2.0;
-        for (int i = 0; i < nBoundary; i++) {
-            double angle = 2.0 * Math.PI * i / nBoundary;
-            double bx = R * Math.cos(angle);
-            double by = R * Math.sin(angle);
-            xyzWriter.printf(Locale.US, "%d %.6f %.6f 0.0 0.0 0.0 0.0 %.6f %d%n",
-                    particles.size() + 1 + i, bx, by, 0.15, 3); // state=3 for boundary
-        }
+        // // Write boundary particles (small, for visualization)
+        // double R = enclosureDiameter / 2.0;
+        // for (int i = 0; i < nBoundary; i++) {
+        //     double angle = 2.0 * Math.PI * i / nBoundary;
+        //     double bx = R * Math.cos(angle);
+        //     double by = R * Math.sin(angle);
+        //     xyzWriter.printf(Locale.US, "%d %.6f %.6f 0.0 0.0 0.0 0.0 %.6f %d%n",
+        //             particles.size() + 1 + i, bx, by, 0.15, 3); // state=3 for boundary
+        // }
 
         xyzWriter.flush();
     }

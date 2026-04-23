@@ -21,6 +21,7 @@ public class EventDrivenMD {
 
     // For tracking state changes (exercise 1.2)
     private int cumulativeFreshToUsed; // Cfc(t)
+    private int used;
 
     // Output control
     private final double outputInterval; // time interval between output frames
@@ -150,6 +151,7 @@ public class EventDrivenMD {
                 if (!a.isFresh()) {
                     a.setFresh(true);
                     stateChange = "USED_TO_FRESH";
+                    used--;
                 }
                 a.bounceOffWall();
                 writer.writeEvent(currentTime, event.getType(), a.getId(), -1, stateChange);
@@ -162,6 +164,7 @@ public class EventDrivenMD {
                     a.setFresh(false);
                     cumulativeFreshToUsed++;
                     stateChange = "FRESH_TO_USED";
+                    used++;
                 }
                 a.bounceOff(obstacle);
                 writer.writeEvent(currentTime, event.getType(), a.getId(), -1, stateChange);
@@ -174,9 +177,9 @@ public class EventDrivenMD {
      * Write output frame if we've passed the next output time.
      */
     private void writeOutputIfNeeded() {
-        while (currentTime >= nextOutputTime && nextOutputTime <= tf) {
+        if (currentTime >= nextOutputTime && currentTime <= tf) {
             recordSnapshot();
-            writer.writeFrame(nextOutputTime, particles);
+            writer.writeFrame(currentTime, particles);
             nextOutputTime += outputInterval;
         }
     }
@@ -185,12 +188,8 @@ public class EventDrivenMD {
      * Record a snapshot for analysis.
      */
     private void recordSnapshot() {
-        int nUsed = 0;
-        for (Particle p : particles) {
-            if (!p.isFresh()) nUsed++;
-        }
-        // [time, Cfc, N_used, N_total]
-        snapshots.add(new double[]{currentTime, cumulativeFreshToUsed, nUsed, particles.size()});
+        // [time, Cfc, N_used]
+        snapshots.add(new double[]{currentTime, cumulativeFreshToUsed, used});
     }
 
     /**
@@ -199,9 +198,9 @@ public class EventDrivenMD {
     public void writeSnapshots(String outputDir, int n, int seed) throws IOException {
         String file = String.format("%s/snapshots_N%d_seed%d.csv", outputDir, n, seed);
         try (java.io.PrintWriter pw = new java.io.PrintWriter(new java.io.FileWriter(file))) {
-            pw.println("time,Cfc,N_used,N_total");
+            pw.println("time,Cfc,N_used");
             for (double[] s : snapshots) {
-                pw.printf(Locale.US, "%.10f,%.0f,%.0f,%.0f%n", s[0], s[1], s[2], s[3]);
+                pw.printf(Locale.US, "%.10f,%.0f,%.0f%n", s[0], s[1], s[2]);
             }
         }
     }

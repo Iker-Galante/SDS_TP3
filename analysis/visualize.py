@@ -7,10 +7,14 @@ Creates animations showing particles with color-coded states:
   - Gray: Boundary particles (enclosure wall)
 """
 
+import datetime
+
 from ovito.io import import_file
+from ovito.pipeline import Pipeline, StaticSource
 from ovito.vis import *
 from ovito.modifiers import *
 from ovito.data import *
+from ovito.modifiers import SmoothTrajectoryModifier
 import numpy as np
 import sys
 import os
@@ -42,8 +46,27 @@ def setup_visualization(pipeline, enclosure_diameter=80.0):
     
     return pipeline
 
+def setup_bounding_visualization(enclosure_diameter=80.0):
+    nBoundary = 360
+    R = enclosure_diameter / 2.0
+    positions = []
+    radii = []
+    for i in range(0, nBoundary):
+        angle = 2.0 * np.pi * i / nBoundary
+        bx = R * np.cos(angle)
+        by = R * np.sin(angle)
+        positions.append([bx, by, 0.0])
+        radii.append(0.15)
+    data = DataCollection()
+    particles = Particles()
+    particles.create_property("Position", data=np.array(positions))
+    particles.create_property("Radius", data=radii)
+    data.objects.append(particles)
+    pipeline = Pipeline(source=StaticSource(data=data))
+    return pipeline
 
-def render_animation(xyz_file, output_video, enclosure_diameter=80.0, fps=30, resolution=(1920, 1080)):
+
+def render_animation(xyz_file, output_video, enclosure_diameter=80.0, fps=30, resolution=(2000, 2000), frames=0, offset=0):
     """Render an animation from the XYZ file."""
     
     # Import data
@@ -54,37 +77,41 @@ def render_animation(xyz_file, output_video, enclosure_diameter=80.0, fps=30, re
     
     # Setup visualization
     pipeline = setup_visualization(pipeline, enclosure_diameter)
+    pipeline.modifiers.append(SmoothTrajectoryModifier())
     pipeline.add_to_scene()
+
+    setup_bounding_visualization(enclosure_diameter=enclosure_diameter).add_to_scene()
     
     # Configure viewport
     vp = Viewport(type=Viewport.Type.Top)
     R = enclosure_diameter / 2.0
     vp.camera_pos = (0, 0, 100)
     vp.camera_dir = (0, 0, -1)
-    vp.fov = enclosure_diameter * 1.1
+    vp.fov = enclosure_diameter * 0.6
     
     # Configure renderer
     renderer = TachyonRenderer()
     renderer.ambient_occlusion = True
     renderer.antialiasing_samples = 12
     
+    if not pipeline.source: return
     # Render
     num_frames = pipeline.source.num_frames
-    print(f"Rendering {num_frames} frames at {resolution[0]}x{resolution[1]}...")
+    print(f"Rendering up to {num_frames} frames at {resolution[0]}x{resolution[1]}...")
     
     vp.render_anim(
         filename=output_video,
         size=resolution,
         fps=fps,
-        renderer=renderer,
-        range=(0, num_frames - 1)
+        #renderer=renderer,
+        range=(max(0, offset), min(offset+frames, num_frames-1))
     )
     
     pipeline.remove_from_scene()
     print(f"Animation saved to: {output_video}")
 
 
-def render_snapshot(xyz_file, output_image, frame=0, enclosure_diameter=80.0, resolution=(1920, 1080)):
+def render_snapshot(xyz_file, output_image, frame=0, enclosure_diameter=80.0, resolution=(2000, 2000)):
     """Render a single frame from the XYZ file."""
     
     pipeline = import_file(xyz_file, columns=[
@@ -94,6 +121,8 @@ def render_snapshot(xyz_file, output_image, frame=0, enclosure_diameter=80.0, re
     
     pipeline = setup_visualization(pipeline, enclosure_diameter)
     pipeline.add_to_scene()
+
+    setup_bounding_visualization(enclosure_diameter=enclosure_diameter).add_to_scene()
     
     vp = Viewport(type=Viewport.Type.Top)
     vp.camera_pos = (0, 0, 100)
@@ -123,10 +152,11 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o", required=True, help="Output file (video or image)")
     parser.add_argument("--mode", "-m", choices=["animation", "snapshot"], default="animation",
                         help="Rendering mode")
-    parser.add_argument("--frame", type=int, default=0, help="Frame number for snapshot mode")
+    parser.add_argument("--offset", type=int, default=0, help="Frame offset to start animation (or frame to render for snapshot)")
+    parser.add_argument("--frames", type=int, default=0, help="How many frames to render in animation (0 means all)")
     parser.add_argument("--fps", type=int, default=30, help="FPS for animation")
-    parser.add_argument("--width", type=int, default=1920, help="Output width")
-    parser.add_argument("--height", type=int, default=1080, help="Output height")
+    parser.add_argument("--width", type=int, default=2000, help="Output width")
+    parser.add_argument("--height", type=int, default=2000, help="Output height")
     parser.add_argument("--L", type=float, default=80.0, help="Enclosure diameter")
     
     args = parser.parse_args()
@@ -142,7 +172,10 @@ if __name__ == "__main__":
             args.output += ".png"
             print(f"No extension provided for output. Defaulting to {args.output}")
     
+    start = datetime.datetime.now()
     if args.mode == "animation":
-        render_animation(args.input, args.output, args.L, args.fps, resolution)
+        render_animation(args.input, args.output, args.L, args.fps, resolution, args.frames, args.offset)
     else:
-        render_snapshot(args.input, args.output, args.frame, args.L, resolution)
+        render_snapshot(args.input, args.output, args.offset, args.L, resolution)
+    end = datetime.datetime.now()
+    print(f"Done rendering, took {end - start}")
