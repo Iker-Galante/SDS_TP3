@@ -26,8 +26,8 @@ JAR_PATH = os.path.join(os.path.dirname(__file__), "..", "simulation", "target",
 OUTPUT_BASE = os.path.join(os.path.dirname(__file__), "..", "output", "ex2")
 TF = 2000.0  # Longer simulation for better statistics
 DT = 0.0   # Output interval
-N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300, 400]
-NUM_REALIZATIONS = 5
+N_VALUES = [10, 20, 50, 100, 150, 200]
+NUM_REALIZATIONS = 40
 BASE_SEED = 100
 
 
@@ -83,7 +83,7 @@ def main():
     with ThreadPool(processes=multiprocessing.cpu_count()) as pool:
         for n in N_VALUES:
             for real in range(NUM_REALIZATIONS):
-                seed = BASE_SEED + real
+                seed = BASE_SEED + real*200
                 out_dir = os.path.join(OUTPUT_BASE, f"N{n}_seed{seed}")
                 print(f"Running N={n}, realization {real+1}/{NUM_REALIZATIONS} (seed={seed})...")
                 jobs.append(pool.apply_async(run_simulation, args=(n, TF, seed, out_dir)))

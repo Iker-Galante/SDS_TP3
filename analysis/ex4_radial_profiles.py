@@ -25,8 +25,8 @@ import os
 # Configuration
 OUTPUT_BASE = os.path.join(os.path.dirname(__file__), "..", "output", "ex2")  # Reuse ex2 data
 PLOT_DIR = os.path.join(os.path.dirname(__file__), "..", "output", "ex4")
-N_VALUES = [100, 200, 300, 400]
-NUM_REALIZATIONS = 5
+N_VALUES = [10, 20, 50, 100, 150, 200]
+NUM_REALIZATIONS = 20
 BASE_SEED = 100
 DS = 0.2  # Layer width
 ENCLOSURE_DIAMETER = 80.0
@@ -70,7 +70,7 @@ class parse_xyz_file():
     """
 
     def __init__(self, filepath):
-        self.file = open(filepath, 'r')
+        self.file = open(filepath, 'r', buffering=2**27)
 
     def __del__(self):
         if hasattr(self, 'file'):
@@ -110,9 +110,9 @@ class parse_xyz_file():
             vx = float(tokens[4])
             vy = float(tokens[5])
             # vz = tokens[6]
-            radius = float(tokens[7])
+            #radius = float(tokens[7])
             state = int(tokens[8])
-            particles.append((pid, x, y, vx, vy, radius, state))
+            particles.append((pid, x, y, vx, vy, 1, state))
         
         return{
             'time': time,
@@ -153,9 +153,6 @@ def compute_radial_profiles(file, s_centers, n):
     for frame in frames:   
         counter = [0 for i in range(0, len(s_centers))]     
         for pid, x, y, vx, vy, radius, state in frame['particles']:
-            # Skip non-movable particles (obstacle, boundary)
-            if state == 2 or state == 3:
-                continue
             # Only fresh particles
             if state != 0:
                 continue
@@ -190,17 +187,17 @@ def main():
     os.makedirs(PLOT_DIR, exist_ok=True)
     
     # Collect radial profiles for each N (averaged over realizations)
-    profiles: Dict[int, Tuple[List[Stats], List[Stats]]] = {}  # N -> (s_centers, rho_mean, vfin_mean)
+    profiles: Dict[int, Tuple[List[Stats], List[Stats]]] = {}  # N -> (rho_mean, vfin_mean)
     centers, areas = compute_layers()
 
     jobs: List[AsyncResult] = []
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-        for n in N_VALUES:
+        for n in N_VALUES[::-1]:
             print(f"Processing N={n}...")
             profiles[n] = ([Stats() for i in centers], [Stats() for i in centers]) #(rho, vfin)
 
             for real in range(NUM_REALIZATIONS):
-                seed = BASE_SEED + real
+                seed = BASE_SEED + real*200
                 xyz_file = os.path.join(OUTPUT_BASE, f"N{n}_seed{seed}", f"simulation_N{n}_seed{seed}.xyz")
                 
                 if not os.path.exists(xyz_file):
@@ -220,10 +217,10 @@ def main():
                     ans = job.get()
                     jobs.remove(job)
                     profiles[ans[0]] = ([i.combine(j) for i, j in zip(ans[1], profiles[ans[0]][0])], [i.combine(j) for i, j in zip(ans[2], profiles[ans[0]][1])])
-                    printText = f"Ran {totalJobs - len(jobs)} jobs ({(totalJobs-len(jobs))*100/totalJobs:5.2f}%), elapsed: {str(datetime.now() - initTimestamp).split('.')[0]}, remaining: {str((datetime.now() - initTimestamp) / ((totalJobs-len(jobs)+1)/totalJobs) * (len(jobs)) / totalJobs).split('.')[0]}"
-                    print(f"\033[2K\r\033[7m{printText[0:int(len(printText)*(totalJobs-len(jobs))/totalJobs)]}\033[0m{printText[int(len(printText)*(totalJobs-len(jobs))/totalJobs):]}", end='')
+            printText = f"Loaded {totalJobs - len(jobs)} simulations ({(totalJobs-len(jobs))*100/totalJobs:5.2f}%), elapsed: {str(datetime.now() - initTimestamp).split('.')[0]}, remaining: {str((datetime.now() - initTimestamp) / ((totalJobs-len(jobs)+1)/totalJobs) * (len(jobs)) / totalJobs).split('.')[0]}"
+            print(f"\033[2K\r\033[7m{printText[0:int(len(printText)*(totalJobs-len(jobs))/totalJobs)]}\033[0m{printText[int(len(printText)*(totalJobs-len(jobs))/totalJobs):]}", end='')
             sleep(1)
-            print(f"\nDone.")
+        print(f"\nDone.")
             
         for n in profiles:
             for idx, rho in enumerate(profiles[n][0]):
