@@ -8,7 +8,9 @@ For each N, runs multiple realizations and:
 4. Plots <J>(N) with error bars
 """
 
+from datetime import datetime
 import subprocess
+from time import sleep
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -16,12 +18,14 @@ import matplotlib.pyplot as plt
 import os
 import csv
 from scipy import stats
+import multiprocessing
+from multiprocessing.pool import ThreadPool
 
 # Configuration
 JAR_PATH = os.path.join(os.path.dirname(__file__), "..", "simulation", "target", "tp3-scanning-rate-1.0-SNAPSHOT.jar")
 OUTPUT_BASE = os.path.join(os.path.dirname(__file__), "..", "output", "ex2")
 TF = 2000.0  # Longer simulation for better statistics
-DT = 0.1   # Output interval
+DT = 0.0   # Output interval
 N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300, 400]
 NUM_REALIZATIONS = 5
 BASE_SEED = 100
@@ -74,15 +78,37 @@ def main():
     os.makedirs(OUTPUT_BASE, exist_ok=True)
     
     all_J = {}  # N -> list of J values across realizations
-    
-    for n in N_VALUES:
-        all_J[n] = []
-        for real in range(NUM_REALIZATIONS):
-            seed = BASE_SEED + real
-            out_dir = os.path.join(OUTPUT_BASE, f"N{n}_seed{seed}")
-            print(f"Running N={n}, realization {real+1}/{NUM_REALIZATIONS} (seed={seed})...")
-            
-            if run_simulation(n, TF, seed, out_dir):
+    jobs = []
+
+    with ThreadPool(processes=multiprocessing.cpu_count()) as pool:
+        for n in N_VALUES:
+            for real in range(NUM_REALIZATIONS):
+                seed = BASE_SEED + real
+                out_dir = os.path.join(OUTPUT_BASE, f"N{n}_seed{seed}")
+                print(f"Running N={n}, realization {real+1}/{NUM_REALIZATIONS} (seed={seed})...")
+                jobs.append(pool.apply_async(run_simulation, args=(n, TF, seed, out_dir)))
+
+        totalJobs = len(jobs)
+        print(totalJobs)
+        initTimestamp = datetime.now()
+        print("\033[2K\rPlease wait...", end='')
+        while len(jobs):
+            for job in jobs:
+                if job.ready():
+                    ans = job.get()
+                    jobs.remove(job)
+                    printText = f"Ran {totalJobs - len(jobs)} jobs ({(totalJobs-len(jobs))*100/totalJobs:5.2f}%), elapsed: {str(datetime.now() - initTimestamp).split('.')[0]}, remaining: {str((datetime.now() - initTimestamp) / ((totalJobs-len(jobs)+1)/totalJobs) * (len(jobs)) / totalJobs).split('.')[0]}"
+                    print(f"\033[2K\r\033[7m{printText[0:int(len(printText)*(totalJobs-len(jobs))/totalJobs)]}\033[0m{printText[int(len(printText)*(totalJobs-len(jobs))/totalJobs):]}", end='')
+                    if not ans:
+                        print("Something went wrong")
+                        return
+            sleep(1)
+        print(f"\nDone.")
+        for n in N_VALUES:
+            all_J[n] = []
+            for real in range(NUM_REALIZATIONS):
+                seed = BASE_SEED + real
+                out_dir = os.path.join(OUTPUT_BASE, f"N{n}_seed{seed}")
                 times, cfc = load_snapshots(out_dir, n, seed)
                 J = compute_scanning_rate(times, cfc)
                 all_J[n].append(J)
