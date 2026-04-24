@@ -96,15 +96,20 @@ def render_animation(xyz_file, output_video, enclosure_diameter=80.0, fps=30, re
     
     if not pipeline.source: return
     # Render
-    num_frames = pipeline.source.num_frames
-    print(f"Rendering up to {num_frames} frames at {resolution[0]}x{resolution[1]}...")
+    offset = max(0, offset)
+    if frames == 0:
+        frames = pipeline.source.num_frames - 1
+    else:
+        frames = min(offset + frames, pipeline.source.num_frames-1)
+    print(f"Rendering {frames-offset} frames at {resolution[0]}x{resolution[1]}...")
+    
     
     vp.render_anim(
         filename=output_video,
         size=resolution,
         fps=fps,
         #renderer=renderer,
-        range=(max(0, offset), min(offset+frames, num_frames-1))
+        range=(offset, frames)
     )
     
     pipeline.remove_from_scene()
