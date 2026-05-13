@@ -89,8 +89,11 @@ def read_steady_states(csv_file):
             steady_state[int(n)] = int(t_stat)
     return steady_state
 
-def calculate_steady_value(fu, steady_state):
-    return np.mean(fu[steady_state:])
+def calculate_steady_value(times, fu, t_steady):
+    idx = np.searchsorted(times, t_steady)
+    if idx >= len(fu):
+        idx = max(0, len(fu) - 10)
+    return np.mean(fu[idx:])
 
 def main():
     os.makedirs(PLOT_DIR, exist_ok=True)
@@ -109,7 +112,7 @@ def main():
     # --- Plot 1: Fu(t) for different N values ---
     fig, ax = plt.subplots(figsize=(12, 8))
     
-    plot1_n_values = [100, 200, 300, 400]
+    plot1_n_values = [100, 200, 300, 400,500,600,700,800,900,1000]
     colors = plt.colormaps['viridis'](np.linspace(0.1, 0.9, len(plot1_n_values)))
     
     for idx, n in enumerate(plot1_n_values):
@@ -146,9 +149,11 @@ def main():
         fests = []
         t_steadys = []
         for times, fu in all_fu[n]:
-            #t_s, f_s = find_steady_state(times, fu)
-            t_s = steady_states[n]
-            f_s = calculate_steady_value(fu, t_s)
+            if steady_states is not None and n in steady_states:
+                t_s = steady_states[n]
+            else:
+                t_s, _ = find_steady_state(times, fu)
+            f_s = calculate_steady_value(times, fu, t_s)
             fests.append(f_s)
             t_steadys.append(t_s)
         
@@ -185,7 +190,7 @@ def main():
     plt.close(fig)
     
     # Print table
-    print(f"\n{'N':>6} | {'Fest':>8} | {'σ_Fest':>8} | {'t_steady':>10} | {'σ_t':>10}")
+    print(f"\n{'N':>6} | {'Fest':>8} | {'sigma_F':>8} | {'t_steady':>10} | {'sigma_t':>10}")
     print("-" * 55)
     for n in ns:
         vals = fest_values[n]
