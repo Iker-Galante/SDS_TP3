@@ -17,8 +17,8 @@ JAR_PATH = os.path.join(os.path.dirname(__file__), "..", "simulation", "target",
 OUTPUT_BASE = os.path.join(os.path.dirname(__file__), "..", "output", "ex1")
 TF = 500.0  # Fixed final simulation time (extended to 500s para mayor estadística)
 DT = 0.1  # Output interval
-N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300]
-SEEDS = [42, 123, 456, 789, 1024]  # Multiple seeds for averaging
+N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300,400,500,600,700,800,900,1000]  # Range of N values to test
+SEEDS = [42, 123, 456]  # Multiple seeds for averaging
 
 
 def run_simulation(n, tf, seed, output_dir):

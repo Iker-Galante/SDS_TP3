@@ -86,6 +86,16 @@ public class Main {
         double minR = r0 + r;       // min radial distance (outside obstacle)
         int maxAttempts = 100000;
 
+        // Quick feasibility estimate using hexagonal packing density
+        double annulusArea = Math.PI * (maxR * maxR - minR * minR);
+        double circleArea = Math.PI * r * r;
+        double hexPackingFraction = Math.PI / (2.0 * Math.sqrt(3.0)); // ~0.9069
+        long maxApprox = (long) Math.floor(annulusArea * hexPackingFraction / circleArea);
+        if (n > maxApprox) {
+            System.err.printf("Warning: requested N=%d may exceed theoretical maximum of %d for current geometry.%n", n, maxApprox);
+            System.err.println("The program will attempt placement but may fail; consider increasing L or decreasing r.");
+        }
+
         for (int i = 0; i < n; i++) {
             boolean placed = false;
             for (int attempt = 0; attempt < maxAttempts; attempt++) {
@@ -125,12 +135,114 @@ public class Main {
                 break;
             }
             if (!placed) {
-                System.err.printf("Could not place particle %d after %d attempts. " +
-                        "Try fewer particles or a larger enclosure.%n", i + 1, maxAttempts);
-                System.exit(1);
+                // Random placement failed (very dense). Try a deterministic fallback
+                System.err.printf("Random placement failed at particle %d after %d attempts.%n", i + 1, maxAttempts);
+                System.err.println("Attempting grid-based fallback placement for remaining particles...");
+                // Fill remaining slots using a hexagonal grid packing inside the annulus.
+                // If mixed random+grid fails, try a full deterministic grid placement from scratch.
+                System.err.println("Mixed random+grid placement insufficient, trying full hex-grid placement from scratch.");
+                List<Particle> grid = generateGridPlacement(n, obstacle, minR, maxR);
+                if (grid.size() < n) {
+                    System.err.printf("Could not place all particles using grid. Placed %d out of %d.%n", grid.size(), n);
+                    System.err.println("Try fewer particles or a larger enclosure.");
+                    System.exit(1);
+                }
+                return grid;
             }
         }
         return particles;
+    }
+
+    /**
+     * Generate up to n particles using a hexagonal lattice filling the annular region.
+     * Returns the list of placed particles (size may be < n if geometry doesn't allow).
+     */
+    private static List<Particle> generateGridPlacement(int n, Particle obstacle, double minR, double maxR) {
+        List<Particle> particles = new ArrayList<>();
+            double spacingFactor = 1.0;
+            double spacing = 2.0 * r * spacingFactor;
+            double vert = Math.sqrt(3.0) * r * spacingFactor;
+
+        int row = 0;
+        for (double y = -maxR; y <= maxR && particles.size() < n; y += vert, row++) {
+            boolean offset = (row % 2 != 0);
+            double startX = offset ? spacing / 2.0 : 0.0;
+            for (double x = -maxR; x <= maxR && particles.size() < n; x += spacing) {
+                double px = x + startX;
+                double py = y;
+
+                double dist = Math.sqrt(px * px + py * py);
+                if (dist < minR || dist > maxR) continue;
+
+                Particle candidate = Particle.createMovable(particles.size() + 1, px, py, 0.0, 0.0, r, m);
+                if (candidate.isOverlapping(obstacle)) continue;
+
+                boolean overlaps = false;
+                for (Particle existing : particles) {
+                    if (candidate.isOverlapping(existing)) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+                if (overlaps) continue;
+
+                double vAngle = Math.random() * 2 * Math.PI;
+                double pvx = v0 * Math.cos(vAngle);
+                double pvy = v0 * Math.sin(vAngle);
+                Particle placed = Particle.createMovable(particles.size() + 1, px, py, pvx, pvy, r, m);
+                particles.add(placed);
+            }
+        }
+        return particles;
+    }
+
+    /**
+     * Fill the particle list up to the requested remaining count using a hexagonal grid
+     * inside the annular region [minR, maxR]. This is a deterministic fallback used when
+     * random placement fails for dense packings.
+     */
+    private static void fillWithGrid(List<Particle> particles, int remaining, Particle obstacle,
+                                     double minR, double maxR) {
+        // Slightly reduce spacing to account for small overlap tolerance used in isOverlapping
+        double spacingFactor = 1.0; // exact touching spacing for hexagonal packing
+        double spacing = 2.0 * r * spacingFactor; // center-to-center distance
+        double vert = Math.sqrt(3.0) * r * spacingFactor; // vertical spacing for hexagonal packing
+
+        int startSize = particles.size();
+        int target = startSize + remaining;
+
+        int row = 0;
+        for (double y = -maxR; y <= maxR && particles.size() < target; y += vert, row++) {
+            boolean offset = (row % 2 != 0);
+            double startX = offset ? spacing / 2.0 : 0.0;
+            for (double x = -maxR; x <= maxR && particles.size() < target; x += spacing) {
+                double px = x + startX;
+                double py = y;
+
+                double dist = Math.sqrt(px * px + py * py);
+                if (dist < minR || dist > maxR) continue;
+
+                // Check overlap with obstacle
+                Particle candidate = Particle.createMovable(particles.size() + 1, px, py, 0.0, 0.0, r, m);
+                if (candidate.isOverlapping(obstacle)) continue;
+
+                boolean overlaps = false;
+                for (Particle existing : particles) {
+                    if (candidate.isOverlapping(existing)) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+                if (overlaps) continue;
+
+                // Assign a small random velocity direction to avoid identical states
+                double vAngle = Math.random() * 2 * Math.PI;
+                double pvx = v0 * Math.cos(vAngle);
+                double pvy = v0 * Math.sin(vAngle);
+                Particle placed = Particle.createMovable(particles.size() + 1, px, py, pvx, pvy, r, m);
+                particles.add(placed);
+            }
+        }
     }
 
     /**

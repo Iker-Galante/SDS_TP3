@@ -10,6 +10,9 @@ import java.util.*;
  */
 public class EventDrivenMD {
 
+    private static final int EVENT_OUTPUT_INTERVAL = 1000;
+    private static final int THROTTLE_FROM_PARTICLE_COUNT = 500;
+
     private final List<Particle> particles;
     private final Particle obstacle;
     private final double enclosureDiameter;
@@ -26,6 +29,7 @@ public class EventDrivenMD {
     // Output control
     private final double outputInterval; // time interval between output frames
     private double nextOutputTime;
+    private final boolean throttleEventOutput;
 
     // Snapshot data for analysis: records (time, Cfc, N_used) at each output frame
     private final List<double[]> snapshots;
@@ -38,6 +42,7 @@ public class EventDrivenMD {
         this.tf = tf;
         this.outputInterval = outputInterval;
         this.writer = writer;
+        this.throttleEventOutput = outputInterval <= 0 && particles.size() >= THROTTLE_FROM_PARTICLE_COUNT;
         this.eventQueue = new PriorityQueue<>();
         this.currentTime = 0;
         this.totalEvents = 0;
@@ -89,7 +94,8 @@ public class EventDrivenMD {
      */
     public void run() {
         // Write initial state
-        writeOutputIfNeeded();
+        recordSnapshot();
+        writer.writeFrame(currentTime, particles);
 
         while (!eventQueue.isEmpty()) {
             Event event = eventQueue.poll();
@@ -135,12 +141,15 @@ public class EventDrivenMD {
     private void processEvent(Event event) {
         Particle a = event.getA();
         String stateChange = "NONE";
+        boolean sampleThisEvent = throttleEventOutput && (totalEvents + 1) % EVENT_OUTPUT_INTERVAL == 0;
 
         switch (event.getType()) {
             case PARTICLE_PARTICLE:
                 Particle b = event.getB();
                 a.bounceOff(b);
-                writer.writeEvent(currentTime, event.getType(), a.getId(), b.getId(), stateChange);
+                if (outputInterval > 0 || !throttleEventOutput || sampleThisEvent) {
+                    writer.writeEvent(currentTime, event.getType(), a.getId(), b.getId(), stateChange);
+                }
                 // Recalculate events for both particles
                 predictCollisions(a);
                 predictCollisions(b);
@@ -154,7 +163,9 @@ public class EventDrivenMD {
                     used--;
                 }
                 a.bounceOffWall();
-                writer.writeEvent(currentTime, event.getType(), a.getId(), -1, stateChange);
+                if (outputInterval > 0 || !throttleEventOutput || sampleThisEvent) {
+                    writer.writeEvent(currentTime, event.getType(), a.getId(), -1, stateChange);
+                }
                 predictCollisions(a);
                 break;
 
@@ -167,7 +178,9 @@ public class EventDrivenMD {
                     used++;
                 }
                 a.bounceOff(obstacle);
-                writer.writeEvent(currentTime, event.getType(), a.getId(), -1, stateChange);
+                if (outputInterval > 0 || !throttleEventOutput || sampleThisEvent) {
+                    writer.writeEvent(currentTime, event.getType(), a.getId(), -1, stateChange);
+                }
                 predictCollisions(a);
                 break;
         }
@@ -177,11 +190,29 @@ public class EventDrivenMD {
      * Write output frame if we've passed the next output time.
      */
     private void writeOutputIfNeeded() {
+        if (outputInterval <= 0) {
+            if (!throttleEventOutput && currentTime <= tf) {
+                recordSnapshot();
+                writer.writeFrame(currentTime, particles);
+            } else if (shouldSampleEventOutput() && currentTime <= tf) {
+                recordSnapshot();
+                writer.writeFrame(currentTime, particles);
+            }
+            return;
+        }
+
         if (currentTime >= nextOutputTime && currentTime <= tf) {
             recordSnapshot();
             writer.writeFrame(currentTime, particles);
             nextOutputTime += outputInterval;
         }
+    }
+
+    /**
+     * When outputInterval <= 0, sample the simulation every 1000 processed events.
+     */
+    private boolean shouldSampleEventOutput() {
+        return throttleEventOutput && totalEvents > 0 && totalEvents % EVENT_OUTPUT_INTERVAL == 0;
     }
 
     /**

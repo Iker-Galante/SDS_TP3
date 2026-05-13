@@ -26,8 +26,8 @@ JAR_PATH = os.path.join(os.path.dirname(__file__), "..", "simulation", "target",
 OUTPUT_BASE = os.path.join(os.path.dirname(__file__), "..", "output", "ex2")
 TF = 2000.0  # Longer simulation for better statistics
 DT = 0.0   # Output interval
-N_VALUES = [10, 20, 50, 100, 150, 200]
-NUM_REALIZATIONS = 40
+N_VALUES = [10, 20, 50, 100, 150, 200, 250, 300,400,500,600,700,800,900,1000]  # Range of N values to test
+NUM_REALIZATIONS = 3
 BASE_SEED = 100
 
 
